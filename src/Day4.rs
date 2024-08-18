@@ -26,7 +26,12 @@ fn main () {
 
         // long str to vec
         for row in current_table {
-            board.extend(row.split_whitespace().map(|n| n.parse::<u32>().unwrap()).collect::<Vec<u32>>().iter());   
+            board.extend(row.split_whitespace()
+                .map(|n| n.parse::<u32>()
+                .unwrap())
+                .collect::<Vec<u32>>()
+                .iter()
+            );   
         }
 
         boards.push(Board {
@@ -41,7 +46,7 @@ fn main () {
             board.mark(*num);
             if board.is_win() {
                 println!("{:?} WINS", board);
-                println!("ANSWER 1: {:?}", board.score() * num);
+                println!("Part 1: {:?}", board.score() * num);
                 break 'outer;
             }
             
@@ -52,7 +57,7 @@ fn main () {
         boards.iter_mut().for_each(|b| b.mark(*n));
 
         if boards.len() == 1 && boards[0].is_win() {
-            println!("ANSWER 2: {}", boards[0].score() * n);
+            println!("Part 2: {}", boards[0].score() * n);
         }
 
         boards.retain(|b| !b.is_win());
