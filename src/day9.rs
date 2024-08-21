@@ -1,67 +1,101 @@
+use std::collections::HashSet;
+
 fn main() {
-    // Load and parse the input data
-    let input: Vec<Vec<u32>> = include_str!("../data/day9.txt")
+    let input: Vec<Vec<i32>> = include_str!("../data/day9.txt")
         .lines()
         .map(|line| line.chars()
-                        .map(|c| c.to_digit(10).expect("invalid digit"))
+                        .map(|c| c.to_digit(10).expect("invalid digit") as i32)
                         .collect())
         .collect();
 
-    println!("{:?}", input);
+    let mut risk_levels_sum: i32 = 0;
 
-    let length_vert: usize = input.len();
-    let length_horiz: usize = input[0].len();
-    let adj_map: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)]; 
-
-    let mut risk_levels_sum: u32 = 0;
-
-    for (i, row) in input.iter().enumerate() {
-        for (j, num) in row.iter().enumerate() {
-            let mut adj_lower: u8 = 0;
-            for offset in adj_map {
-                let y: i32 = i as i32 + offset.1;
-                let x: i32 = j as i32 + offset.0;
-                 
-                if is_at_edge(length_vert, length_horiz, i, j) {
-                    println!("AT EDGE, i: {}, j: {}", i, j);
-                }
-
-                if in_bounds(length_vert, length_horiz, y, x) {
-                    if input[y as usize][x as usize] > *num {
-                        adj_lower += 1;
-                    }
-                }
-            } 
-            
-            if is_at_wall(length_vert, length_horiz, i, j) && adj_lower == 3 {
-                println!("ADDING, i: {}, j: {}", i, j);
-                risk_levels_sum += num + 1;
-            } else if is_at_edge(length_vert, length_horiz, i, j) && adj_lower == 2 {
-                println!("ADDING, i: {}, j: {}", i, j);
-                risk_levels_sum += num + 1;
-            } else if adj_lower == 4 {
-                risk_levels_sum += num + 1;
-            }
-
-
-            println!("y: {} x: {}, adj_lower: {}, num: {}", i, j, adj_lower, num);
-        }
+    let low_points = find_low_points(&input);
+    
+    for idx in low_points {
+        risk_levels_sum += input[idx.0][idx.1] + 1;
     }
 
     println!("Risk levels sum: {}", risk_levels_sum);
+
+    ////////////// Part 2
+    let low_points = find_low_points(&input);
+    let mut basin_sizes = Vec::new();
+
+    for (x, y) in low_points {
+        let size = basin_size(&input, x, y);
+        basin_sizes.push(size);
+    }
+
+    basin_sizes.sort();
+    basin_sizes.reverse();
+
+    let top_3_basin_product: usize = basin_sizes.iter().take(3).product();
+
+    println!("First 3 Basin sizes product: {:?}", top_3_basin_product);
 }
 
-fn in_bounds(length_vert: usize, length_horiz:usize, y: i32, x: i32) -> bool {
-     (0 <= x && x < length_horiz as i32) && (0 <= y && y < length_vert as i32)
+fn basin_size(grid: &Vec<Vec<i32>>, x: usize, y: usize) -> usize {
+    let mut visited = HashSet::new();
+    flood_fill(grid, x, y, &mut visited)
 }
 
-fn is_at_edge(length_vert: usize, length_horiz:usize, i: usize, j: usize) -> bool {
-    (i == 0 && j == 0) || (i == 0 && j == length_horiz - 1) || (i == length_vert -1 && j == 0) || (i == length_vert - 1 && j == length_horiz -1) 
+fn flood_fill(grid: &Vec<Vec<i32>>, x: usize, y: usize, visited: &mut HashSet<(usize, usize)>) -> usize {
+    let rows = grid.len();
+    let cols = grid[0].len();
+
+    if x >= rows || y >= cols || grid[x][y] == 9 || visited.contains(&(x, y)) {
+        return 0;
+    }
+
+    visited.insert((x, y));
+
+    let mut size = 1;
+
+    if x > 0 && grid[x - 1][y] > grid[x][y] && grid[x - 1][y] != 9 {
+        size += flood_fill(grid, x - 1, y, visited);
+    }
+    if x < rows - 1 && grid[x + 1][y] > grid[x][y] && grid[x + 1][y] != 9 {
+        size += flood_fill(grid, x + 1, y, visited);
+    }
+    if y > 0 && grid[x][y - 1] > grid[x][y] && grid[x][y - 1] != 9 {
+        size += flood_fill(grid, x, y - 1, visited);
+    }
+    if y < cols - 1 && grid[x][y + 1] > grid[x][y] && grid[x][y + 1] != 9 {
+        size += flood_fill(grid, x, y + 1, visited);
+    }
+
+    size
 }
 
-fn is_at_wall(length_vert: usize, length_horiz:usize, i: usize, j: usize) -> bool {
-    (i == 0 && j > 0 && j < length_horiz - 1) 
-    || (i > 0 && i < length_vert - 1 && j == 0) 
-    || (i == length_vert - 1 && j > 0 && j < length_horiz - 1) 
-    || (i > 0 && i < length_vert - 1 && j == length_horiz - 1)
+fn find_low_points(grid: &Vec<Vec<i32>>) -> Vec<(usize, usize)> {
+    let mut low_points = Vec::new();
+    let rows = grid.len();
+    let cols = grid[0].len();
+
+    for i in 0..rows {
+        for j in 0..cols {
+            let current = grid[i][j];
+            let mut is_low_point = true;
+
+            if i > 0 && grid[i - 1][j] <= current {
+                is_low_point = false;
+            }
+            if i < rows - 1 && grid[i + 1][j] <= current {
+                is_low_point = false;
+            }
+            if j > 0 && grid[i][j - 1] <= current {
+                is_low_point = false;
+            }
+            if j < cols - 1 && grid[i][j + 1] <= current {
+                is_low_point = false;
+            }
+
+            if is_low_point {
+                low_points.push((i, j));
+            }
+        }
+    }
+
+    low_points
 }
