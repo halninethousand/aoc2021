@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
 fn main() {
-    // Load and parse the input data
-    let input: Vec<i32> = include_str!("../data/current.txt")
+    let input: Vec<i32> = include_str!("../../data/day7.txt")
         .split(',')
         .map(|num| num.trim().parse().unwrap())
         .collect();
@@ -23,6 +22,10 @@ fn main() {
 
     println!("Minimum fuel required: {}", minimum_fuel);
 
+    let min = *input.iter().min().unwrap();
+    let max = *input.iter().max().unwrap();
+    let unique_positions: HashSet<_> = (min..=max).collect();
+
     let mut minimum_fuel = i32::MAX;
 
     let fuel_cost = |distance: i32| -> i32 {
@@ -36,8 +39,6 @@ fn main() {
         if total_fuel < minimum_fuel {
             minimum_fuel = total_fuel;
         }
-
-        println!("Fuel {} for {}", total_fuel, target_position);
     }
 
     println!("Minimum fuel required, increasing fuel cost: {}", minimum_fuel);
